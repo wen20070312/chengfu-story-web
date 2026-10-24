@@ -12,6 +12,7 @@
   --accent:#b3392f; --accent2:#7f1d1d; --gold:#b8893b;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+[hidden]{display:none!important;}
 html,body{margin:0; padding:0; height:100%;}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -222,14 +223,16 @@ b{color:var(--accent2);}
           </select>
         </div>
         <div class="settings-row">
-          <label>记忆长度：最近 <span id="memLabel">80</span> 条对话</label>
-          <input type="range" class="slider" id="settingsMem" min="20" max="200" step="10" value="80">
-          <div class="hint">角色拥有永不过忘的记忆，全部对话保存在本机。调大可记住更多，但更耗 Token。</div>
+          <label>记忆长度</label>
+          <label class="switch"><input type="checkbox" id="settingsMemInf"> 无限记忆（记住全部历史）</label>
+          <input type="range" class="slider" id="settingsMem" min="20" max="200" step="10" value="80" style="margin-top:10px">
+          <div class="hint">记忆长度：最近 <span id="memLabel">80</span> 条对话。勾选「无限」会带上全部历史，越久越可能接近 DeepSeek 上下文上限、也越耗 Token。</div>
         </div>
         <div class="settings-row">
           <label class="switch"><input type="checkbox" id="settingsAdult"> 18+ 成人模式</label>
           <div class="hint">只对成年角色生效；未成年角色（程念）绝不参与。</div>
         </div>
+        <button class="btn-primary" id="settingsSaveBtn" style="margin:4px 0 14px">保存设置</button>
         <button class="danger-btn" onclick="clearChat()">清空对话记录</button>
         <button class="danger-btn" onclick="resetGame()">重置整个游戏</button>
         <div class="hint" style="text-align:center">版本 1.0 · 数据仅保存在本机浏览器</div>
@@ -598,8 +601,11 @@ function renderMap(){
 function renderSettings(){
   document.getElementById("settingsKey").value = state.apiKey;
   document.getElementById("settingsModel").value = state.model;
-  document.getElementById("settingsMem").value = state.contextLimit;
-  document.getElementById("memLabel").textContent = state.contextLimit;
+  const inf = state.contextLimit >= 1000000;
+  document.getElementById("settingsMemInf").checked = inf;
+  document.getElementById("settingsMem").disabled = inf;
+  document.getElementById("settingsMem").value = inf ? 200 : state.contextLimit;
+  document.getElementById("memLabel").textContent = inf ? "无限" : state.contextLimit;
   document.getElementById("settingsAdult").checked = state.adultMode;
 }
 
@@ -648,7 +654,23 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("settingsKey").addEventListener("input", function(){ state.apiKey = this.value; save(); });
   document.getElementById("settingsModel").addEventListener("change", function(){ state.model = this.value; save(); });
   document.getElementById("settingsMem").addEventListener("input", function(){ state.contextLimit = parseInt(this.value); document.getElementById("memLabel").textContent = this.value; save(); });
+  document.getElementById("settingsMemInf").addEventListener("change", function(){
+    const inf = this.checked;
+    document.getElementById("settingsMem").disabled = inf;
+    if(inf){ state.contextLimit = 1000000; document.getElementById("memLabel").textContent = "无限"; }
+    else { state.contextLimit = parseInt(document.getElementById("settingsMem").value); document.getElementById("memLabel").textContent = state.contextLimit; }
+    save();
+  });
   document.getElementById("settingsAdult").addEventListener("change", function(){ state.adultMode = this.checked; save(); });
+  document.getElementById("settingsSaveBtn").addEventListener("click", function(){
+    state.apiKey = document.getElementById("settingsKey").value.trim();
+    state.model = document.getElementById("settingsModel").value;
+    state.adultMode = document.getElementById("settingsAdult").checked;
+    state.contextLimit = document.getElementById("settingsMemInf").checked ? 1000000 : parseInt(document.getElementById("settingsMem").value);
+    save();
+    toast("✅ 设置已保存");
+    closeModal();
+  });
 
   showScreen();
 });
