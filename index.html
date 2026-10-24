@@ -38,7 +38,8 @@ input:focus,textarea:focus{border-color:var(--accent);}
 .hint{font-size:12px; color:var(--ink2); margin-top:6px; line-height:1.5;}
 .hint a{color:var(--accent);}
 .player-row{display:flex; align-items:center; gap:10px;}
-.avatar{width:42px; height:42px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;}
+.avatar{width:42px; height:42px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; overflow:hidden;}
+.avatar-img{width:100%; height:100%; object-fit:cover; display:block; object-position:top;}
 .tag{font-size:11px; padding:2px 8px; border-radius:10px; background:#eaf3de; color:#3b6d11;}
 .char-row{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); cursor:pointer;}
 .char-row:last-child{border-bottom:none;}
@@ -60,7 +61,7 @@ input:focus,textarea:focus{border-color:var(--accent);}
 .iconbtn{background:none; border:none; font-size:20px; padding:6px;}
 .timebtn{background:none; border:none; font-size:14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:5px;}
 .timebtn .fwd{font-size:11px; color:var(--gold);}
-.chat{flex:1; overflow-y:auto; padding:14px 12px; -webkit-overflow-scrolling:touch;}
+.chat{flex:1; overflow-y:auto; padding:14px 12px; -webkit-overflow-scrolling:touch; background:linear-gradient(rgba(244,237,226,.82), rgba(244,237,226,.82)), url("assets/bg.jpg") center/cover no-repeat; background-color:var(--bg);}
 .msg{padding:0 4px 12px;}
 .msg.narr{text-align:center; color:var(--ink2); font-size:13px; line-height:1.6;}
 .msg.player{display:flex; justify-content:flex-end;}
@@ -266,25 +267,25 @@ const LOCATIONS = [
   {id:"hall", name:"程府大厅", icon:"🏛", desc:"程府正厅，会客议事之地"},
 ];
 const CHARACTERS = [
-  {id:"liushi", name:"柳氏", gender:"女", age:28, home:"主宅", color:"#993556",
+  {id:"liushi", name:"柳氏", gender:"女", age:28, home:"主宅", color:"#993556", img:"assets/liushi.jpg",
    persona:"程晨的继母。程晨生母难产去世后，她被程墨扶为正妻，将程晨当亲生儿子一手抚养长大。程墨死后，府中大小事务都由她一人操持，极尽溺爱程晨，只盼他日日开心。新寡之后深闺寂寞，与管家王有德有了私情，但对他并无半分感情。",
    hidden:"端庄温柔之下藏着深宅的寂寞。对亲手养大的程晨依恋极深，那情分早已越过了母子，只是她自己绝不肯承认。"},
-  {id:"yier", name:"怡儿", gender:"女", age:18, home:"东厢房", color:"#D4537E",
+  {id:"yier", name:"怡儿", gender:"女", age:18, home:"东厢房", color:"#D4537E", img:"assets/yier.jpg",
    persona:"程晨的正妻，比程晨年长三岁。知书达理、端庄贤惠，从小把程晨当弟弟一样照顾，事事以他为先。",
    hidden:"温婉外表下有些小性子，爱吃醋，嘴上嗔怪、心里柔软。"},
-  {id:"yuer", name:"玉儿", gender:"女", age:18, home:"东厢房", color:"#7F77DD",
+  {id:"yuer", name:"玉儿", gender:"女", age:18, home:"东厢房", color:"#7F77DD", img:"assets/yuer.jpg",
    persona:"程晨的小妾，性子软糯黏人，最喜欢缠着程晨，能包容他的一切。",
    hidden:"看似不谙世事，其实最会撒娇拿捏人心，一心只想程晨多陪陪自己。"},
-  {id:"waner", name:"婉儿", gender:"女", age:18, home:"杂役住所", color:"#378ADD",
+  {id:"waner", name:"婉儿", gender:"女", age:18, home:"杂役住所", color:"#378ADD", img:"assets/waner.jpg",
    persona:"程晨的贴身婢女，自小伺候他的起居，安静细心、善解人意，从不多话。",
    hidden:"对程晨情根深种、忠心不二，从不逾矩，却把他的一切喜好都记在心里。"},
   {id:"cuier", name:"翠儿", gender:"女", age:18, home:"杂役住所", color:"#00838F",
    persona:"程府新进的丫鬟，生得伶俐水灵，手脚麻利，平日负责东厢房的洒扫与传话。嘴甜心细，对年轻的新家主程晨又敬又慕。",
    hidden:"机灵会看眼色，心思比同龄姑娘更活络，暗暗希望能被程晨多看两眼。"},
-  {id:"chengnian", name:"程念", gender:"男", age:16, home:"杂役住所", color:"#888780",
+  {id:"chengnian", name:"程念", gender:"男", age:16, home:"杂役住所", color:"#888780", img:"assets/chengnian.jpg",
    persona:"程墨庶子，程晨同父异母的弟弟，生母早逝。性格刻薄善妒、不务正业，对父亲新丧并无伤感，只惦记着家产。",
    hidden:"表面恭顺，暗地里对程晨继承家业心怀不满，总想寻机会捞好处。"},
-  {id:"wangyoude", name:"王有德", gender:"男", age:38, home:"杂役住所", color:"#5F5E5A",
+  {id:"wangyoude", name:"王有德", gender:"男", age:38, home:"杂役住所", color:"#5F5E5A", img:"assets/wangyoude.jpg",
    persona:"程府管家，跟随程墨多年，把府里打点得井井有条。精明世故，嘴严可靠。与柳氏有私情。",
    hidden:"贪财好色，胆大心细，总想在府里捞点油水。"},
   {id:"npc", name:"NPC", gender:"不限", age:30, home:"程府大厅", color:"#1D9E75",
@@ -437,7 +438,10 @@ function formatStory(raw){
 }
 
 // ---------- 渲染 ----------
-function avatarHtml(name, color, size){
+function avatarHtml(name, color, size, img){
+  if(img){
+    return "<div class='avatar' style='width:"+size+"px;height:"+size+"px;padding:0;overflow:hidden'><img class='avatar-img' src='"+img+"' alt='"+escapeHtml(name)+"'></div>";
+  }
   return "<div class='avatar' style='width:"+size+"px;height:"+size+"px;font-size:"+Math.round(size*0.45)+"px;background:"+color+"'>"+escapeHtml(name[0])+"</div>";
 }
 function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -453,7 +457,7 @@ function renderChat(){
     }else{
       const c = charById(m.speakerId);
       const color = c ? c.color : "#888780";
-      html += "<div class='msg ai'>" + avatarHtml(m.speakerName, color, 36)
+      html += "<div class='msg ai'>" + avatarHtml(m.speakerName, color, 36, c && c.img)
         + "<div><div class='ai-head'><span class='nm'>" + escapeHtml(m.speakerName) + "</span>"
         + "<span class='meta'>· " + escapeHtml(m.location || "") + " · " + escapeHtml(timeLabel(m.time)) + "</span></div>"
         + "<div class='bubble'>" + formatStory(m.text) + "</div></div></div>";
@@ -488,7 +492,7 @@ function renderCharSelect(){
   CHARACTERS.forEach(c => {
     const on = state.selectedIds.includes(c.id);
     html += "<div class='char-row " + (on?"on":"") + "' onclick='toggleChar(\"" + c.id + "\")'>"
-      + avatarHtml(c.name, c.color, 40)
+      + avatarHtml(c.name, c.color, 40, c.img)
       + "<div style='flex:1'><div class='char-name'>" + escapeHtml(c.name)
       + " <span style='font-weight:400;font-size:12px;color:var(--ink2)'>" + c.gender + " · " + c.age + "岁</span></div>"
       + "<div class='char-meta'>居" + c.home + "</div>"
@@ -711,7 +715,7 @@ function renderMap(){
     html += "<div class='centermini'>被选中的角色都已在你身边。</div>";
   }else{
     elsewhere.forEach(c => {
-      html += "<div class='summon-row'>" + avatarHtml(c.name, c.color, 30)
+      html += "<div class='summon-row'>" + avatarHtml(c.name, c.color, 30, c.img)
         + "<div><div class='char-name'>" + escapeHtml(c.name) + "</div><div class='char-meta'>现在：" + escapeHtml(c.location) + "</div></div>"
         + "<button class='btn' onclick='summon(\"" + c.id + "\")'>召唤</button></div>";
     });
