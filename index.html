@@ -40,6 +40,9 @@ input:focus,textarea:focus{border-color:var(--accent);}
 .player-row{display:flex; align-items:center; gap:10px;}
 .avatar{width:42px; height:42px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; overflow:hidden;}
 .avatar-img{width:100%; height:100%; object-fit:cover; display:block; object-position:top;}
+.age-ctrl{display:inline-flex; align-items:center; gap:6px; margin-top:6px;}
+.age-btn{width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:15px; line-height:1; cursor:pointer;}
+.age-val{font-size:13px; color:var(--ink2); min-width:40px; text-align:center;}
 .tag{font-size:11px; padding:2px 8px; border-radius:10px; background:#eaf3de; color:#3b6d11;}
 .char-row{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); cursor:pointer;}
 .char-row:last-child{border-bottom:none;}
@@ -127,14 +130,18 @@ b{color:var(--accent2);}
     <div class="scroll">
       <div class="title">程府物语</div>
       <div class="subtitle">古 风 · 家 宅 · 情 缘</div>
-      <div class="story">江南程府，家主程墨骤然离世。一夜之间，十八岁的独子程晨接过了偌大家业。继母柳氏执掌中馈、视他如命；正妻怡儿温婉贤淑，小妾玉儿软糯黏人，贴身婢女婉儿贴心知意，还有庶弟程念与管家王有德各怀心思。程府的日子，从这里开始。</div>
+      <div class="story">江南程府，家主程墨骤然离世。一夜之间，独子程晨接过了偌大家业。继母柳氏执掌中馈、视他如命；正妻怡儿温婉贤淑，小妾玉儿软糯黏人，贴身婢女婉儿贴心知意，还有庶弟程念与管家王有德各怀心思。程府的日子，从这里开始。</div>
 
       <div class="card">
         <div class="lbl">你扮演</div>
         <div class="player-row">
           <div class="avatar" style="background:#185FA5">程</div>
-          <div><div class="char-name">程晨</div><div class="char-meta">男 · 18岁 · 居东厢房</div></div>
-          <span class="tag" style="margin-left:auto">主角</span>
+          <div style="flex:1"><div class="char-name">程晨</div><div class="char-meta">男 · 居东厢房</div></div>
+          <div class="age-ctrl" style="margin-top:0">
+            <button class="age-btn" onclick="playerAgeStep(-1)">−</button>
+            <span class="age-val" id="playerAgeLabel">18岁</span>
+            <button class="age-btn" onclick="playerAgeStep(1)">＋</button>
+          </div>
         </div>
       </div>
 
@@ -282,7 +289,7 @@ const CHARACTERS = [
   {id:"cuier", name:"翠儿", gender:"女", age:18, home:"杂役住所", color:"#00838F",
    persona:"程府新进的丫鬟，生得伶俐水灵，手脚麻利，平日负责东厢房的洒扫与传话。嘴甜心细，对年轻的新家主程晨又敬又慕。",
    hidden:"机灵会看眼色，心思比同龄姑娘更活络，暗暗希望能被程晨多看两眼。"},
-  {id:"chengnian", name:"程念", gender:"男", age:16, home:"杂役住所", color:"#888780", img:"assets/chengnian.jpg",
+  {id:"chengnian", name:"程念", gender:"男", age:18, home:"杂役住所", color:"#888780", img:"assets/chengnian.jpg",
    persona:"程墨庶子，程晨同父异母的弟弟，生母早逝。性格刻薄善妒、不务正业，对父亲新丧并无伤感，只惦记着家产。",
    hidden:"表面恭顺，暗地里对程晨继承家业心怀不满，总想寻机会捞好处。"},
   {id:"wangyoude", name:"王有德", gender:"男", age:38, home:"杂役住所", color:"#5F5E5A", img:"assets/wangyoude.jpg",
@@ -310,7 +317,7 @@ function freshState(){
     started:false, selectedIds:[], characters:defaultCharacters(), messages:[],
     playerLocation:"东厢房", time:{day:1, minutes:8*60+30},
     adultMode:false, apiKey:"", model:"deepseek-flash", contextLimit:80,
-    replyTargetIds:[], isThinking:false
+    replyTargetIds:[], isThinking:false, playerAge:18, customAges:{}
   };
 }
 function loadSaves(){
@@ -359,14 +366,14 @@ function toast(msg){
 // ---------- 提示词 ----------
 function buildSystemPrompt(target){
   let s = "你是一部古风家宅题材文字剧情游戏的扮演引擎，玩家扮演主角程晨。请严格按以下设定扮演，绝不跳出角色、绝不提及自己是AI。\n\n";
-  s += "【背景】江南程府家主程墨突然病故，独子程晨（18岁）一夜之间继承家业。继母柳氏执掌府中大小事务并极度疼爱程晨；程晨有正妻怡儿、小妾玉儿、贴身婢女婉儿，另有庶弟程念与管家王有德。程晨不必操心琐事，府中自有人打理。\n\n";
+  s += "【背景】江南程府家主程墨突然病故，独子程晨（" + state.playerAge + "岁）一夜之间继承家业。继母柳氏执掌府中大小事务并极度疼爱程晨；程晨有正妻怡儿、小妾玉儿、贴身婢女婉儿，另有庶弟程念与管家王有德。程晨不必操心琐事，府中自有人打理。\n\n";
   s += "【地点】" + LOCATIONS.map(l=>l.name).join("、") + "。柳氏住主宅，程晨与怡儿、玉儿住东厢房，程念、婉儿、王有德住杂役住所。角色只有与程晨处于同一地点时才能当面交谈；若程晨召唤了谁，谁便会赶来。\n\n";
   s += "【当前状态】\n时间：" + timeLabel(state.time) + "\n程晨位置：" + state.playerLocation + "\n";
   const present = presentCharacters();
   s += present.length ? ("此刻在程晨身边：" + present.map(c=>c.name).join("、") + "\n") : "此刻程晨身边没有其他角色。\n";
   s += "\n【角色档案】（只存在以下被选中的角色，其余角色一律不存在、不会说话）\n";
   selectedCharacters().forEach(c => {
-    s += "◆ " + c.name + "｜" + c.gender + "｜" + c.age + "岁｜居" + c.home + "｜当前在：" + c.location + "\n";
+    s += "◆ " + c.name + "｜" + c.gender + "｜" + getAge(c) + "岁｜居" + c.home + "｜当前在：" + c.location + "\n";
     s += "  性格与经历：" + c.persona + "\n";
     if(c.hidden) s += "  内在设定（藏在心里，不要直说）：" + c.hidden + "\n";
   });
@@ -378,12 +385,11 @@ function buildSystemPrompt(target){
   s += "5. 若程晨刚刚把你召唤过来，先自然描写你从住处赶来的情景。\n";
   s += "6. 文风：古风白话，贴合人物身份，单次回复150~350字，结尾留有余韵、引导剧情继续。\n";
   if(state.adultMode){
-    if(target.age >= 18){
+    if(getAge(target) >= 18){
       s += "\n【成人模式·已开启】本作允许成年角色之间直白、露骨的情爱内容：可以完整细腻地描写情欲、身体与性行为的全过程与细节，不必回避、淡化或转移，但须贴合人物性格与两人关系，情感有铺垫、循序渐进，一切互动出自成年角色的自愿。\n";
     }else{
       s += "\n【限制】本角色未成年，绝不参与任何情色、性暗示或亲密内容，成人模式对其完全无效。\n";
     }
-    s += "无论如何：未成年角色（程念，16岁）绝不出现任何情色、性暗示或亲密内容。\n";
   }
   return s;
 }
@@ -486,6 +492,7 @@ function renderTop(){
 function renderAll(){ renderTop(); renderChat(); renderChips(); }
 
 // ---------- 开始页 ----------
+function getAge(c){ return state.customAges[c.id] || c.age; }
 function renderCharSelect(){
   const el = document.getElementById("charSelect");
   let html = "";
@@ -494,12 +501,28 @@ function renderCharSelect(){
     html += "<div class='char-row " + (on?"on":"") + "' onclick='toggleChar(\"" + c.id + "\")'>"
       + avatarHtml(c.name, c.color, 40, c.img)
       + "<div style='flex:1'><div class='char-name'>" + escapeHtml(c.name)
-      + " <span style='font-weight:400;font-size:12px;color:var(--ink2)'>" + c.gender + " · " + c.age + "岁</span></div>"
+      + " <span style='font-weight:400;font-size:12px;color:var(--ink2)'>" + c.gender + "</span></div>"
       + "<div class='char-meta'>居" + c.home + "</div>"
-      + "<div class='char-persona'>" + escapeHtml(c.persona) + "</div></div>"
+      + "<div class='char-persona'>" + escapeHtml(c.persona) + "</div>"
+      + "<div class='age-ctrl' onclick='event.stopPropagation()'>"
+      + "<button class='age-btn' onclick='ageStep(\"" + c.id + "\",-1)'>−</button>"
+      + "<span class='age-val'>" + getAge(c) + "岁</span>"
+      + "<button class='age-btn' onclick='ageStep(\"" + c.id + "\",1)'>＋</button>"
+      + "</div></div>"
       + "<div class='check'>" + (on?"✓":"") + "</div></div>";
   });
   el.innerHTML = html;
+}
+function ageStep(id, delta){
+  const c = CHARACTERS.find(x => x.id === id);
+  if(!c) return;
+  const cur = getAge(c);
+  state.customAges[id] = Math.min(99, Math.max(18, cur + delta));
+  renderCharSelect();
+}
+function playerAgeStep(delta){
+  state.playerAge = Math.min(99, Math.max(18, state.playerAge + delta));
+  document.getElementById("playerAgeLabel").textContent = state.playerAge + "岁";
 }
 function toggleChar(id){
   const i = state.selectedIds.indexOf(id);
@@ -617,6 +640,7 @@ function backToMenu(){
   document.getElementById("apiKeyInput").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
   document.getElementById("adultToggle").checked = state.adultMode;
+  document.getElementById("playerAgeLabel").textContent = state.playerAge + "岁";
   updateStartBtn();
   renderSaveList();
   showScreen();
@@ -670,6 +694,7 @@ function resetGame(){
   document.getElementById("apiKeyInput").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
   document.getElementById("adultToggle").checked = state.adultMode;
+  document.getElementById("playerAgeLabel").textContent = state.playerAge + "岁";
   updateStartBtn();
   renderSaveList();
   showScreen(); closeModal();
@@ -766,6 +791,7 @@ document.addEventListener("DOMContentLoaded", function(){
   document.getElementById("apiKeyInput").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
   document.getElementById("adultToggle").checked = state.adultMode;
+  document.getElementById("playerAgeLabel").textContent = state.playerAge + "岁";
   updateStartBtn();
 
   document.getElementById("apiKeyInput").addEventListener("input", function(){ state.apiKey = this.value; updateStartBtn(); });
