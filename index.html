@@ -51,6 +51,8 @@ input:focus,textarea:focus{border-color:var(--accent);}
 .btn-primary{width:100%; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:14px; font-size:16px; font-weight:700; letter-spacing:2px; margin-top:4px;}
 .btn-primary:disabled{background:#cbb9a4;}
 .btn-primary:active{background:var(--accent2);}
+.btn-secondary{width:100%; background:var(--card); color:var(--accent); border:1px solid var(--accent); border-radius:12px; padding:11px; font-size:15px; font-weight:600; margin-top:10px;}
+.btn-secondary:active{background:#f6e3e1;}
 
 /* 游戏页 */
 .topbar{display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); border-bottom:1px solid var(--line); padding-top:max(8px, env(safe-area-inset-top));}
@@ -133,7 +135,15 @@ b{color:var(--accent2);}
       <div class="card">
         <div class="lbl">DeepSeek API Key</div>
         <input type="text" id="apiKeyInput" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false">
-        <div class="hint">在 <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a> 免费注册获取。仅保存在你本机浏览器。</div>
+        <div class="lbl" style="margin-top:10px">选择模型</div>
+        <select id="modelSelect" style="width:100%;font-size:16px;padding:10px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink)">
+          <option value="deepseek-flash">deepseek-flash（最新 · 推荐）</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+          <option value="deepseek-chat">deepseek-chat（旧版）</option>
+          <option value="deepseek-reasoner">deepseek-reasoner（旧版）</option>
+        </select>
+        <button id="saveBtn" class="btn-secondary">保存配置</button>
+        <div class="hint">在 <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a> 免费注册获取。Key 仅保存在你本机浏览器。</div>
       </div>
 
       <div class="card">
@@ -205,8 +215,10 @@ b{color:var(--accent2);}
         <div class="settings-row">
           <label>模型</label>
           <select id="settingsModel" style="width:100%;font-size:15px;padding:9px;border-radius:8px;border:1px solid var(--line)">
-            <option value="deepseek-chat">deepseek-chat（推荐）</option>
-            <option value="deepseek-reasoner">deepseek-reasoner（更聪明更慢）</option>
+            <option value="deepseek-flash">deepseek-flash（最新 · 推荐）</option>
+            <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+            <option value="deepseek-chat">deepseek-chat（旧版）</option>
+            <option value="deepseek-reasoner">deepseek-reasoner（旧版）</option>
           </select>
         </div>
         <div class="settings-row">
@@ -249,6 +261,9 @@ const CHARACTERS = [
   {id:"waner", name:"婉儿", gender:"女", age:18, home:"杂役住所", color:"#378ADD",
    persona:"程晨的贴身婢女，自小伺候他的起居，安静细心、善解人意，从不多话。",
    hidden:"对程晨情根深种、忠心不二，从不逾矩，却把他的一切喜好都记在心里。"},
+  {id:"cuier", name:"翠儿", gender:"女", age:18, home:"杂役住所", color:"#00838F",
+   persona:"程府新进的丫鬟，生得伶俐水灵，手脚麻利，平日负责东厢房的洒扫与传话。嘴甜心细，对年轻的新家主程晨又敬又慕。",
+   hidden:"机灵会看眼色，心思比同龄姑娘更活络，暗暗希望能被程晨多看两眼。"},
   {id:"chengnian", name:"程念", gender:"男", age:16, home:"杂役住所", color:"#888780",
    persona:"程墨庶子，程晨同父异母的弟弟，生母早逝。性格刻薄善妒、不务正业，对父亲新丧并无伤感，只惦记着家产。",
    hidden:"表面恭顺，暗地里对程晨继承家业心怀不满，总想寻机会捞好处。"},
@@ -273,7 +288,7 @@ function freshState(){
   return {
     started:false, selectedIds:[], characters:defaultCharacters(), messages:[],
     playerLocation:"东厢房", time:{day:1, minutes:8*60+30},
-    adultMode:false, apiKey:"", model:"deepseek-chat", contextLimit:80,
+    adultMode:false, apiKey:"", model:"deepseek-flash", contextLimit:80,
     replyTargetId:null, isThinking:false
   };
 }
@@ -355,7 +370,7 @@ async function callDeepSeek(apiKey, model, messages){
   const res = await fetch("https://api.deepseek.com/chat/completions", {
     method:"POST",
     headers:{"Content-Type":"application/json", "Authorization":"Bearer " + apiKey},
-    body: JSON.stringify({model, messages, temperature:1.2, stream:false})
+    body: JSON.stringify({model, messages, temperature:1.2, max_tokens:8192, stream:false})
   });
   if(!res.ok){
     let body = "";
@@ -466,6 +481,7 @@ function updateStartBtn(){
 }
 function startGame(){
   state.apiKey = document.getElementById("apiKeyInput").value.trim();
+  state.model = document.getElementById("modelSelect").value;
   state.adultMode = document.getElementById("adultToggle").checked;
   if(!state.selectedIds.length){ toast("请至少选择一名角色"); return; }
   if(!state.apiKey){ toast("请先填写 API Key"); return; }
@@ -592,10 +608,21 @@ document.addEventListener("DOMContentLoaded", function(){
   load();
   renderCharSelect();
   document.getElementById("apiKeyInput").value = state.apiKey;
+  document.getElementById("modelSelect").value = state.model;
   document.getElementById("adultToggle").checked = state.adultMode;
   updateStartBtn();
 
   document.getElementById("apiKeyInput").addEventListener("input", function(){ state.apiKey = this.value; updateStartBtn(); });
+  document.getElementById("modelSelect").addEventListener("change", function(){ state.model = this.value; save(); });
+  document.getElementById("saveBtn").addEventListener("click", function(){
+    const key = document.getElementById("apiKeyInput").value.trim();
+    if(!key){ toast("请先填写 API Key"); return; }
+    state.apiKey = key;
+    state.model = document.getElementById("modelSelect").value;
+    state.adultMode = document.getElementById("adultToggle").checked;
+    save();
+    toast("✅ 配置已保存");
+  });
   document.getElementById("charSelect").addEventListener("click", function(e){});
   document.getElementById("startBtn").addEventListener("click", startGame);
 
