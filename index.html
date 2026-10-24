@@ -112,6 +112,10 @@ b{color:var(--accent2);}
 #toast{position:fixed; left:50%; bottom:120px; transform:translateX(-50%); background:rgba(0,0,0,.8); color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; z-index:99; max-width:85%; text-align:center; opacity:0; pointer-events:none; transition:.2s;}
 #toast.show{opacity:1;}
 .centermini{color:var(--ink2); font-size:13px; text-align:center; padding:8px;}
+.save-row{display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--line);}
+.save-row:last-child{border-bottom:none;}
+.sbtn{background:var(--accent); color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:13px; flex-shrink:0;}
+.sbtn.del{background:none; color:var(--accent); border:1px solid var(--accent);}
 </style>
 </head>
 <body>
@@ -131,6 +135,11 @@ b{color:var(--accent2);}
           <div><div class="char-name">程晨</div><div class="char-meta">男 · 18岁 · 居东厢房</div></div>
           <span class="tag" style="margin-left:auto">主角</span>
         </div>
+      </div>
+
+      <div class="card" id="saveCard" hidden>
+        <div class="lbl">继续游戏（选择存档）</div>
+        <div id="saveList"></div>
       </div>
 
       <div class="card">
@@ -233,6 +242,7 @@ b{color:var(--accent2);}
           <div class="hint">只对成年角色生效；未成年角色（程念）绝不参与。</div>
         </div>
         <button class="btn-primary" id="settingsSaveBtn" style="margin:4px 0 14px">保存设置</button>
+        <button class="btn-secondary" onclick="backToMenu()" style="margin-bottom:12px">返回主菜单（存档 / 新游戏）</button>
         <button class="danger-btn" onclick="clearChat()">清空对话记录</button>
         <button class="danger-btn" onclick="resetGame()">重置整个游戏</button>
         <div class="hint" style="text-align:center">版本 1.0 · 数据仅保存在本机浏览器</div>
@@ -278,11 +288,14 @@ const CHARACTERS = [
    hidden:""},
 ];
 const PLAYER = {id:"player", name:"程晨", color:"#185FA5"};
-const STORE_KEY = "chengfu_story_v1";
+const SAVES_KEY = "chengfu_saves_v1";
+const SETTINGS_KEY = "chengfu_settings";
 const SHICHEN = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
 
 let state = null;
 let uid = 0;
+let saves = [];
+let activeSaveId = null;
 
 function defaultCharacters(){
   return CHARACTERS.map(c => Object.assign({}, c, {location:c.home}));
@@ -292,18 +305,28 @@ function freshState(){
     started:false, selectedIds:[], characters:defaultCharacters(), messages:[],
     playerLocation:"东厢房", time:{day:1, minutes:8*60+30},
     adultMode:false, apiKey:"", model:"deepseek-flash", contextLimit:80,
-    replyTargetId:null, isThinking:false
+    replyTargetIds:[], isThinking:false
   };
 }
-function load(){
-  try{
-    const s = localStorage.getItem(STORE_KEY);
-    if(s){ const o = JSON.parse(s); state = Object.assign(freshState(), o); return; }
-  }catch(e){}
+function loadSaves(){
+  try{ saves = JSON.parse(localStorage.getItem(SAVES_KEY)) || []; }catch(e){ saves = []; }
   state = freshState();
+  loadSettings();
+}
+function loadSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if(s){ state.apiKey = s.apiKey || ""; state.model = s.model || "deepseek-flash"; state.adultMode = !!s.adultMode; state.contextLimit = s.contextLimit || 80; }
+  }catch(e){}
+}
+function persistSaves(){
+  try{ localStorage.setItem(SAVES_KEY, JSON.stringify(saves)); }catch(e){}
 }
 function save(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({apiKey:state.apiKey, model:state.model, adultMode:state.adultMode, contextLimit:state.contextLimit})); }catch(e){}
+  if(!activeSaveId) return;
+  const s = saves.find(x => x.id === activeSaveId);
+  if(s){ s.data = JSON.parse(JSON.stringify(state)); s.updatedAt = Date.now(); persistSaves(); }
 }
 
 function timeLabel(t){
@@ -442,9 +465,10 @@ function renderChips(){
   const el = document.getElementById("chips");
   const present = presentCharacters();
   let html = "<span class='chip-lbl'>回复</span>";
-  html += "<button class='chip " + (state.replyTargetId == null ? "on":"") + "' onclick='setTarget(null)'>全体在场</button>";
+  html += "<button class='chip " + (state.replyTargetIds.length===0 ? "on":"") + "' onclick='setTargetAll()'>全体</button>";
   present.forEach(c => {
-    html += "<button class='chip " + (state.replyTargetId === c.id ? "on":"") + "' onclick='setTarget(\"" + c.id + "\")'>" + escapeHtml(c.name) + "</button>";
+    const on = state.replyTargetIds.includes(c.id);
+    html += "<button class='chip " + (on?"on":"") + "' onclick='toggleTarget(\"" + c.id + "\")'>" + escapeHtml(c.name) + "</button>";
   });
   el.innerHTML = html;
 }
@@ -492,10 +516,13 @@ function startGame(){
   state.messages = [];
   state.time = {day:1, minutes:8*60+30};
   state.playerLocation = "东厢房";
-  state.replyTargetId = null;
+  state.replyTargetIds = [];
   state.started = true;
-  addNarration("（父亲程墨的丧事刚过，你成了程府新的家主。这日清晨，你从东厢房醒来。\n提示：点左上「地图」可移动位置、召唤人过来；点顶部时间可快进时光；被你选中的角色才会在府中出现。）");
-  save();
+  addNarration("（父亲程墨的丧事刚过，你成了程府新的家主。这日清晨，你从东厢房醒来。\n提示：点左上「地图」移动位置、召唤人；点顶部时间快进；下方可点选一名或多名角色单独对话。每一轮对话都会自动存档。）");
+  const slot = { id:"s"+Date.now(), name:"存档"+(saves.length+1), updatedAt:Date.now(), data:JSON.parse(JSON.stringify(state)) };
+  saves.push(slot);
+  activeSaveId = slot.id;
+  persistSaves();
   showScreen();
 }
 
@@ -505,13 +532,68 @@ function showScreen(){
   document.getElementById("gameScreen").hidden = !state.started;
   if(state.started) renderAll();
 }
-function setTarget(id){ state.replyTargetId = id; renderChips(); }
+function fmtTime(ts){
+  const d = new Date(ts);
+  return (d.getMonth()+1) + "月" + d.getDate() + "日 " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function renderSaveList(){
+  const card = document.getElementById("saveCard");
+  const el = document.getElementById("saveList");
+  if(!saves.length){ card.hidden = true; el.innerHTML = ""; return; }
+  card.hidden = false;
+  let html = "";
+  saves.slice().sort((a,b)=>b.updatedAt-a.updatedAt).forEach(s => {
+    const d = s.data || {};
+    const t = d.time ? timeLabel(d.time) : "未开始";
+    const n = (d.selectedIds || []).length;
+    html += "<div class='save-row'>"
+      + "<div style='flex:1'><div class='char-name'>" + escapeHtml(s.name) + "</div>"
+      + "<div class='char-meta'>" + t + " · " + n + "名角色 · " + fmtTime(s.updatedAt) + "</div></div>"
+      + "<button class='sbtn' onclick='continueSave(\"" + s.id + "\")'>继续</button>"
+      + "<button class='sbtn del' onclick='deleteSave(\"" + s.id + "\")'>删</button></div>";
+  });
+  el.innerHTML = html;
+}
+function continueSave(id){
+  const s = saves.find(x => x.id === id);
+  if(!s) return;
+  state = Object.assign(freshState(), s.data || {});
+  state.isThinking = false;
+  activeSaveId = id;
+  showScreen();
+}
+function deleteSave(id){
+  if(!confirm("删除这个存档？")) return;
+  saves = saves.filter(x => x.id !== id);
+  if(activeSaveId === id) activeSaveId = null;
+  persistSaves();
+  renderSaveList();
+}
+function backToMenu(){
+  save();
+  const keep = {apiKey:state.apiKey, model:state.model, adultMode:state.adultMode, contextLimit:state.contextLimit};
+  state = Object.assign(freshState(), keep);
+  activeSaveId = null;
+  renderCharSelect();
+  document.getElementById("apiKeyInput").value = state.apiKey;
+  document.getElementById("modelSelect").value = state.model;
+  document.getElementById("adultToggle").checked = state.adultMode;
+  renderSaveList();
+  showScreen();
+  closeModal();
+}
+function setTargetAll(){ state.replyTargetIds = []; renderChips(); }
+function toggleTarget(id){
+  const i = state.replyTargetIds.indexOf(id);
+  if(i>=0) state.replyTargetIds.splice(i,1); else state.replyTargetIds.push(id);
+  renderChips();
+}
 
 function moveTo(locId){
   const loc = LOCATIONS.find(l=>l.id===locId);
   if(!loc || loc.name === state.playerLocation) return;
   state.playerLocation = loc.name;
-  state.replyTargetId = null;
+  state.replyTargetIds = [];
   addNarration("（你移步来到" + loc.name + "。）");
   save(); renderAll(); renderMap(); closeModal();
 }
@@ -531,10 +613,12 @@ function advanceTimeMin(m){
 }
 function clearChat(){ state.messages = []; save(); renderAll(); toast("对话记录已清空"); }
 function resetGame(){
-  if(!confirm("确定重置？所有角色位置、时间、对话都会清空。")) return;
-  localStorage.removeItem(STORE_KEY);
+  if(!confirm("确定重置？所有存档都会被删除。")) return;
+  saves = []; activeSaveId = null; persistSaves();
   state = freshState();
-  renderCharSelect(); document.getElementById("apiKeyInput").value = state.apiKey;
+  renderCharSelect();
+  document.getElementById("apiKeyInput").value = state.apiKey;
+  renderSaveList();
   showScreen(); closeModal();
 }
 
@@ -550,8 +634,9 @@ async function send(text){
     save(); renderAll(); return;
   }
   let targets;
-  if(state.replyTargetId && present.find(c=>c.id===state.replyTargetId)){
-    targets = present.filter(c=>c.id===state.replyTargetId);
+  if(state.replyTargetIds.length){
+    targets = present.filter(c => state.replyTargetIds.includes(c.id));
+    if(!targets.length) targets = present;
   }else{
     targets = present;
   }
@@ -611,8 +696,9 @@ function renderSettings(){
 
 // ---------- 事件绑定 ----------
 document.addEventListener("DOMContentLoaded", function(){
-  load();
+  loadSaves();
   renderCharSelect();
+  renderSaveList();
   document.getElementById("apiKeyInput").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
   document.getElementById("adultToggle").checked = state.adultMode;
