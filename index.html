@@ -137,9 +137,13 @@ b{color:var(--accent2);}
         </div>
       </div>
 
-      <div class="card" id="saveCard" hidden>
-        <div class="lbl">继续游戏（选择存档）</div>
+      <div class="card">
+        <div class="lbl">存档管理</div>
         <div id="saveList"></div>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <button class="btn-secondary" id="importBtn" style="margin-top:0; flex:1">导入存档</button>
+        </div>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none">
       </div>
 
       <div class="card">
@@ -537,10 +541,8 @@ function fmtTime(ts){
   return (d.getMonth()+1) + "月" + d.getDate() + "日 " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
 }
 function renderSaveList(){
-  const card = document.getElementById("saveCard");
   const el = document.getElementById("saveList");
-  if(!saves.length){ card.hidden = true; el.innerHTML = ""; return; }
-  card.hidden = false;
+  if(!saves.length){ el.innerHTML = "<div class='centermini'>暂无存档，新建游戏后会自动存档</div>"; return; }
   let html = "";
   saves.slice().sort((a,b)=>b.updatedAt-a.updatedAt).forEach(s => {
     const d = s.data || {};
@@ -550,6 +552,7 @@ function renderSaveList(){
       + "<div style='flex:1'><div class='char-name'>" + escapeHtml(s.name) + "</div>"
       + "<div class='char-meta'>" + t + " · " + n + "名角色 · " + fmtTime(s.updatedAt) + "</div></div>"
       + "<button class='sbtn' onclick='continueSave(\"" + s.id + "\")'>继续</button>"
+      + "<button class='sbtn' onclick='exportSave(\"" + s.id + "\")'>导出</button>"
       + "<button class='sbtn del' onclick='deleteSave(\"" + s.id + "\")'>删</button></div>";
   });
   el.innerHTML = html;
@@ -568,6 +571,38 @@ function deleteSave(id){
   if(activeSaveId === id) activeSaveId = null;
   persistSaves();
   renderSaveList();
+}
+function exportSave(id){
+  const s = saves.find(x => x.id === id);
+  if(!s){ toast("存档不存在"); return; }
+  const out = { type:"chengfu-save", version:1, name:s.name, updatedAt:s.updatedAt, data:s.data };
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "程府物语-" + s.name + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  toast("存档已导出为文件");
+}
+function importSave(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let obj;
+    try{ obj = JSON.parse(e.target.result); }catch(err){ toast("文件解析失败，请确认是导出的存档文件"); return; }
+    let data = null, name = "导入存档";
+    if(obj && obj.type === "chengfu-save" && obj.data){ data = obj.data; name = obj.name || name; }
+    else if(obj && typeof obj === "object" && (obj.messages !== undefined || obj.selectedIds !== undefined || obj.started !== undefined)){ data = obj; }
+    if(!data){ toast("不是有效的存档文件"); return; }
+    const slot = { id:"s"+Date.now(), name:name, updatedAt:Date.now(), data:data };
+    saves.push(slot);
+    persistSaves();
+    renderSaveList();
+    toast("✅ 存档已导入");
+  };
+  reader.readAsText(file);
 }
 function backToMenu(){
   save();
@@ -717,6 +752,10 @@ document.addEventListener("DOMContentLoaded", function(){
   });
   document.getElementById("charSelect").addEventListener("click", function(e){});
   document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("importBtn").addEventListener("click", function(){ document.getElementById("importFile").click(); });
+  document.getElementById("importFile").addEventListener("change", function(){
+    if(this.files && this.files[0]){ importSave(this.files[0]); this.value = ""; }
+  });
 
   document.getElementById("mapBtn").addEventListener("click", function(){ renderMap(); openModal("mapModal"); });
   document.getElementById("timeBtn").addEventListener("click", function(){ document.getElementById("timeBig").textContent = timeLabel(state.time); document.getElementById("customMin").value = 60; document.getElementById("customMinLabel").textContent = 60; openModal("timeModal"); });
