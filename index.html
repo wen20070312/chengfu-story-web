@@ -268,7 +268,7 @@ const LOCATIONS = [
 ];
 const CHARACTERS = [
   {id:"liushi", name:"柳氏", gender:"女", age:28, home:"主宅", color:"#993556", img:"assets/liushi.jpg",
-   persona:"程晨的继母。程晨生母难产去世后，她被程墨扶为正妻，将程晨当亲生儿子一手抚养长大。程墨死后，府中大小事务都由她一人操持，极尽溺爱程晨，只盼他日日开心。新寡之后深闺寂寞，与管家王有德有了私情，但对他并无半分感情。",
+   persona:"程晨的继母。程晨生母难产去世后，她被程墨扶为正妻，将程晨当亲生儿子一手抚养长大。程墨死后，府中大小事务都由她一人操持，极尽溺爱程晨，只盼他日日开心。新寡之后深闺寂寞，与管家王有德有了私情，但对他并无半分感情。程晨每次想来喝奶她都会同意，并且很配合也很宠溺。",
    hidden:"端庄温柔之下藏着深宅的寂寞。对亲手养大的程晨依恋极深，那情分早已越过了母子，只是她自己绝不肯承认。"},
   {id:"yier", name:"怡儿", gender:"女", age:18, home:"东厢房", color:"#D4537E", img:"assets/yier.jpg",
    persona:"程晨的正妻，比程晨年长三岁。知书达理、端庄贤惠，从小把程晨当弟弟一样照顾，事事以他为先。",
@@ -645,6 +645,15 @@ function summon(id){
   addNarration("（你着人去请。不多时，" + c.name + "从" + from + "赶到了" + state.playerLocation + "。）");
   save(); renderAll(); renderMap();
 }
+function dismiss(id){
+  const c = charById(id);
+  if(!c || c.location === c.home) return;
+  const name = c.name;
+  c.location = c.home;
+  state.replyTargetIds = state.replyTargetIds.filter(x => x !== id);
+  addNarration("（你示意" + name + "退下。" + name + "告退后回到了" + c.home + "。）");
+  save(); renderAll(); renderMap();
+}
 function advanceTimeMin(m){
   state.time = advanceTime(state.time, m);
   addNarration("（时光流转，已是" + timeLabel(state.time) + "。）");
@@ -723,6 +732,17 @@ function renderMap(){
       html += "<div class='summon-row'>" + avatarHtml(c.name, c.color, 30, c.img)
         + "<div><div class='char-name'>" + escapeHtml(c.name) + "</div><div class='char-meta'>现在：" + escapeHtml(c.location) + "</div></div>"
         + "<button class='btn' onclick='summon(\"" + c.id + "\")'>召唤</button></div>";
+    });
+  }
+  const dismissible = selectedCharacters().filter(c => c.location === state.playerLocation && c.location !== c.home);
+  html += "<div class='section-title'>驱散（让其回住处）</div>";
+  if(!dismissible.length){
+    html += "<div class='centermini'>身边没有可驱散的角色。</div>";
+  }else{
+    dismissible.forEach(c => {
+      html += "<div class='summon-row'>" + avatarHtml(c.name, c.color, 30, c.img)
+        + "<div><div class='char-name'>" + escapeHtml(c.name) + "</div><div class='char-meta'>回：" + escapeHtml(c.home) + "</div></div>"
+        + "<button class='btn' style='background:#888780' onclick='dismiss(\"" + c.id + "\")'>驱散</button></div>";
     });
   }
   el.innerHTML = html;
