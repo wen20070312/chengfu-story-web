@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>程府物语</title>
+<style>
+:root{
+  --bg:#f4ede2; --card:#fffaf2; --line:#e6d9c4; --ink:#3a2e22; --ink2:#8a7a66;
+  --accent:#b3392f; --accent2:#7f1d1d; --gold:#b8893b;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased; touch-action:manipulation;
+}
+#app{max-width:640px; margin:0 auto; height:100dvh; display:flex; flex-direction:column; position:relative;}
+.screen{flex:1; display:flex; flex-direction:column; min-height:0;}
+.scroll{flex:1; overflow-y:auto; padding:16px; -webkit-overflow-scrolling:touch;}
+button{font-family:inherit; cursor:pointer;}
+
+/* 开始页 */
+.title{font-family:"Songti SC","STSong",serif; font-size:30px; font-weight:700; text-align:center; margin:8px 0 4px; color:var(--accent2); letter-spacing:4px;}
+.subtitle{text-align:center; color:var(--gold); font-size:12px; letter-spacing:2px; margin-bottom:14px;}
+.story{font-size:14px; line-height:1.7; color:var(--ink2); margin-bottom:14px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px;}
+.lbl{font-size:14px; font-weight:600; margin-bottom:8px;}
+input[type=text],input[type=password],textarea{
+  width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
+  border-radius:8px; background:#fff; color:var(--ink); outline:none; font-family:inherit;
+}
+input:focus,textarea:focus{border-color:var(--accent);}
+.hint{font-size:12px; color:var(--ink2); margin-top:6px; line-height:1.5;}
+.hint a{color:var(--accent);}
+.player-row{display:flex; align-items:center; gap:10px;}
+.avatar{width:42px; height:42px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;}
+.tag{font-size:11px; padding:2px 8px; border-radius:10px; background:#eaf3de; color:#3b6d11;}
+.char-row{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); cursor:pointer;}
+.char-row:last-child{border-bottom:none;}
+.char-name{font-size:15px; font-weight:600;}
+.char-meta{font-size:12px; color:var(--ink2); margin-top:2px;}
+.char-persona{font-size:12px; color:var(--ink2); margin-top:4px; line-height:1.5;}
+.check{width:22px; height:22px; border-radius:50%; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; flex-shrink:0; margin-top:8px; transition:.15s;}
+.char-row.on .check{background:var(--accent); border-color:var(--accent);}
+.switch{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600;}
+.switch input{width:20px; height:20px; accent-color:var(--accent);}
+.btn-primary{width:100%; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:14px; font-size:16px; font-weight:700; letter-spacing:2px; margin-top:4px;}
+.btn-primary:disabled{background:#cbb9a4;}
+.btn-primary:active{background:var(--accent2);}
+
+/* 游戏页 */
+.topbar{display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); border-bottom:1px solid var(--line); padding-top:max(8px, env(safe-area-inset-top));}
+.iconbtn{background:none; border:none; font-size:20px; padding:6px;}
+.timebtn{background:none; border:none; font-size:14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:5px;}
+.timebtn .fwd{font-size:11px; color:var(--gold);}
+.chat{flex:1; overflow-y:auto; padding:14px 12px; -webkit-overflow-scrolling:touch;}
+.msg{padding:0 4px 12px;}
+.msg.narr{text-align:center; color:var(--ink2); font-size:13px; line-height:1.6;}
+.msg.player{display:flex; justify-content:flex-end;}
+.msg.player .bubble{background:var(--accent); color:#fff; border-radius:14px 14px 4px 14px; padding:10px 12px; max-width:80%; font-size:15px; line-height:1.6;}
+.msg.ai{display:flex; gap:8px;}
+.msg.ai .bubble{background:var(--card); border:1px solid var(--line); border-radius:4px 14px 14px 14px; padding:10px 12px; max-width:82%; font-size:15px; line-height:1.65;}
+.ai-head{display:flex; align-items:baseline; gap:6px; margin-bottom:3px;}
+.ai-head .nm{font-size:13px; font-weight:700;}
+.ai-head .meta{font-size:11px; color:var(--ink2);}
+.paren{color:var(--ink2);}
+b{color:var(--accent2);}
+.thinking{display:flex; align-items:center; gap:8px; color:var(--ink2); font-size:13px; padding:4px 8px;}
+.dots span{display:inline-block; width:6px; height:6px; background:var(--ink2); border-radius:50%; margin-right:4px; animation:blink 1.2s infinite;}
+.dots span:nth-child(2){animation-delay:.2s;} .dots span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+.chips{display:flex; gap:8px; overflow-x:auto; padding:8px 12px; background:var(--card); border-top:1px solid var(--line); white-space:nowrap;}
+.chip{font-size:13px; padding:6px 12px; border-radius:14px; border:1px solid var(--line); background:#fff; color:var(--ink); flex-shrink:0;}
+.chip.on{background:var(--accent); color:#fff; border-color:var(--accent);}
+.chip-lbl{font-size:12px; color:var(--ink2); display:flex; align-items:center; padding-left:2px;}
+.inputbar{display:flex; align-items:flex-end; gap:8px; padding:8px 12px; background:var(--card); border-top:1px solid var(--line); padding-bottom:max(8px, env(safe-area-inset-bottom));}
+.inputbar textarea{resize:none; max-height:120px; line-height:1.5;}
+.sendbtn{width:42px; height:42px; border-radius:50%; background:var(--accent); color:#fff; border:none; font-size:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+.sendbtn:disabled{background:#cbb9a4;}
+
+/* 弹窗 */
+.modal{position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:flex-end; justify-content:center; z-index:50;}
+.modal-card{width:100%; max-width:640px; background:var(--bg); border-radius:16px 16px 0 0; max-height:88dvh; display:flex; flex-direction:column;}
+.modal-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line);}
+.modal-head .t{font-size:16px; font-weight:700;}
+.modal-body{overflow-y:auto; padding:12px 16px 20px; -webkit-overflow-scrolling:touch;}
+.loc-row{display:flex; align-items:center; gap:10px; padding:12px; background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; cursor:pointer;}
+.loc-row .ic{font-size:22px;}
+.loc-name{font-size:15px; font-weight:600;}
+.loc-desc{font-size:12px; color:var(--ink2); margin-top:2px;}
+.loc-people{font-size:11px; color:var(--gold); margin-top:3px;}
+.here-tag{font-size:11px; padding:2px 8px; border-radius:10px; background:#eaf3de; color:#3b6d11;}
+.summon-row{display:flex; align-items:center; gap:10px; padding:10px; background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:8px;}
+.summon-row .btn{background:var(--accent); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-size:13px; margin-left:auto;}
+.section-title{font-size:13px; color:var(--ink2); margin:16px 0 8px; font-weight:600;}
+.time-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.time-grid button{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:15px; color:var(--ink);}
+.time-grid button .sub{display:block; font-size:11px; color:var(--ink2); margin-top:3px;}
+.curtime{text-align:center; font-size:18px; font-weight:700; margin:6px 0 14px;}
+.slider{width:100%; accent-color:var(--accent);}
+.settings-row{margin-bottom:14px;}
+.settings-row label{font-size:14px; font-weight:600; display:block; margin-bottom:6px;}
+.danger-btn{width:100%; background:none; border:1px solid var(--accent); color:var(--accent); border-radius:10px; padding:11px; font-size:14px; margin-bottom:8px;}
+.link-btn{color:var(--accent); font-size:13px;}
+#toast{position:fixed; left:50%; bottom:120px; transform:translateX(-50%); background:rgba(0,0,0,.8); color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; z-index:99; max-width:85%; text-align:center; opacity:0; pointer-events:none; transition:.2s;}
+#toast.show{opacity:1;}
+.centermini{color:var(--ink2); font-size:13px; text-align:center; padding:8px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 开始页 -->
+  <section id="startScreen" class="screen">
+    <div class="scroll">
+      <div class="title">程府物语</div>
+      <div class="subtitle">古 风 · 家 宅 · 情 缘</div>
+      <div class="story">江南程府，家主程墨骤然离世。一夜之间，十八岁的独子程晨接过了偌大家业。继母柳氏执掌中馈、视他如命；正妻怡儿温婉贤淑，小妾玉儿软糯黏人，贴身婢女婉儿贴心知意，还有庶弟程念与管家王有德各怀心思。程府的日子，从这里开始。</div>
+
+      <div class="card">
+        <div class="lbl">你扮演</div>
+        <div class="player-row">
+          <div class="avatar" style="background:#185FA5">程</div>
+          <div><div class="char-name">程晨</div><div class="char-meta">男 · 18岁 · 居东厢房</div></div>
+          <span class="tag" style="margin-left:auto">主角</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lbl">DeepSeek API Key</div>
+        <input type="text" id="apiKeyInput" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="hint">在 <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a> 免费注册获取。仅保存在你本机浏览器。</div>
+      </div>
+
+      <div class="card">
+        <div class="lbl">选择出场角色（未选中的不会出现、不会说话）</div>
+        <div id="charSelect"></div>
+      </div>
+
+      <div class="card">
+        <label class="switch"><input type="checkbox" id="adultToggle"> 18+ 成人模式</label>
+        <div class="hint">开启后成年角色之间可进行露骨对话；未成年角色（程念）绝不参与任何成人内容。仅保存在本机。</div>
+      </div>
+
+      <button id="startBtn" class="btn-primary">进入程府</button>
+    </div>
+  </section>
+
+  <!-- 游戏页 -->
+  <section id="gameScreen" class="screen" hidden>
+    <header class="topbar">
+      <button id="mapBtn" class="iconbtn" title="地图">🗺</button>
+      <button id="timeBtn" class="timebtn"><span id="timeText"></span><span class="fwd">⏩</span></button>
+      <button id="settingsBtn" class="iconbtn" title="设置">⚙</button>
+    </header>
+    <div id="chat" class="chat"></div>
+    <div id="chips" class="chips"></div>
+    <div class="inputbar">
+      <textarea id="input" rows="1" placeholder="以程晨的身份说话……"></textarea>
+      <button id="sendBtn" class="sendbtn" title="发送">➤</button>
+    </div>
+  </section>
+
+  <!-- 地图弹窗 -->
+  <div id="mapModal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head"><span class="t">程府地图</span><button class="iconbtn" data-close>✕</button></div>
+      <div class="modal-body" id="mapBody"></div>
+    </div>
+  </div>
+
+  <!-- 时间弹窗 -->
+  <div id="timeModal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head"><span class="t">时间</span><button class="iconbtn" data-close>✕</button></div>
+      <div class="modal-body">
+        <div class="curtime" id="timeBig"></div>
+        <div class="time-grid">
+          <button onclick="advanceTimeMin(30)">快进<span class="sub">半小时</span></button>
+          <button onclick="advanceTimeMin(120)">快进<span class="sub">一个时辰</span></button>
+          <button onclick="advanceTimeMin(360)">快进<span class="sub">半天</span></button>
+          <button onclick="advanceTimeMin(1440)">快进<span class="sub">一天</span></button>
+        </div>
+        <div class="section-title">自定义快进：<span id="customMinLabel">60</span> 分钟</div>
+        <input type="range" class="slider" id="customMin" min="10" max="720" step="10" value="60">
+        <button class="btn-primary" style="margin-top:10px" onclick="advanceTimeMin(parseInt(document.getElementById('customMin').value))">快进自定义时间</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div id="settingsModal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head"><span class="t">设置</span><button class="iconbtn" data-close>✕</button></div>
+      <div class="modal-body">
+        <div class="settings-row">
+          <label>DeepSeek API Key</label>
+          <input type="text" id="settingsKey" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="hint"><a class="link-btn" href="https://platform.deepseek.com" target="_blank">前往 platform.deepseek.com 获取</a></div>
+        </div>
+        <div class="settings-row">
+          <label>模型</label>
+          <select id="settingsModel" style="width:100%;font-size:15px;padding:9px;border-radius:8px;border:1px solid var(--line)">
+            <option value="deepseek-chat">deepseek-chat（推荐）</option>
+            <option value="deepseek-reasoner">deepseek-reasoner（更聪明更慢）</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <label>记忆长度：最近 <span id="memLabel">80</span> 条对话</label>
+          <input type="range" class="slider" id="settingsMem" min="20" max="200" step="10" value="80">
+          <div class="hint">角色拥有永不过忘的记忆，全部对话保存在本机。调大可记住更多，但更耗 Token。</div>
+        </div>
+        <div class="settings-row">
+          <label class="switch"><input type="checkbox" id="settingsAdult"> 18+ 成人模式</label>
+          <div class="hint">只对成年角色生效；未成年角色（程念）绝不参与。</div>
+        </div>
+        <button class="danger-btn" onclick="clearChat()">清空对话记录</button>
+        <button class="danger-btn" onclick="resetGame()">重置整个游戏</button>
+        <div class="hint" style="text-align:center">版本 1.0 · 数据仅保存在本机浏览器</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+const LOCATIONS = [
+  {id:"mainHouse", name:"主宅", icon:"🏡", desc:"继母柳氏的居所，内宅中枢"},
+  {id:"eastWing", name:"东厢房", icon:"🏮", desc:"程晨与怡儿、玉儿的住处"},
+  {id:"servantHouse", name:"杂役住所", icon:"🏚", desc:"程念、婉儿、王有德住处"},
+  {id:"garden", name:"花园", icon:"🌸", desc:"府中后花园，四季有景"},
+  {id:"hall", name:"程府大厅", icon:"🏛", desc:"程府正厅，会客议事之地"},
+];
+const CHARACTERS = [
+  {id:"liushi", name:"柳氏", gender:"女", age:28, home:"主宅", color:"#993556",
+   persona:"程晨的继母。程晨生母难产去世后，她被程墨扶为正妻，将程晨当亲生儿子一手抚养长大。程墨死后，府中大小事务都由她一人操持，极尽溺爱程晨，只盼他日日开心。新寡之后深闺寂寞，与管家王有德有了私情，但对他并无半分感情。",
+   hidden:"端庄温柔之下藏着深宅的寂寞。对亲手养大的程晨依恋极深，那情分早已越过了母子，只是她自己绝不肯承认。"},
+  {id:"yier", name:"怡儿", gender:"女", age:18, home:"东厢房", color:"#D4537E",
+   persona:"程晨的正妻，比程晨年长三岁。知书达理、端庄贤惠，从小把程晨当弟弟一样照顾，事事以他为先。",
+   hidden:"温婉外表下有些小性子，爱吃醋，嘴上嗔怪、心里柔软。"},
+  {id:"yuer", name:"玉儿", gender:"女", age:18, home:"东厢房", color:"#7F77DD",
+   persona:"程晨的小妾，性子软糯黏人，最喜欢缠着程晨，能包容他的一切。",
+   hidden:"看似不谙世事，其实最会撒娇拿捏人心，一心只想程晨多陪陪自己。"},
+  {id:"waner", name:"婉儿", gender:"女", age:18, home:"杂役住所", color:"#378ADD",
+   persona:"程晨的贴身婢女，自小伺候他的起居，安静细心、善解人意，从不多话。",
+   hidden:"对程晨情根深种、忠心不二，从不逾矩，却把他的一切喜好都记在心里。"},
+  {id:"chengnian", name:"程念", gender:"男", age:16, home:"杂役住所", color:"#888780",
+   persona:"程墨庶子，程晨同父异母的弟弟，生母早逝。性格刻薄善妒、不务正业，对父亲新丧并无伤感，只惦记着家产。",
+   hidden:"表面恭顺，暗地里对程晨继承家业心怀不满，总想寻机会捞好处。"},
+  {id:"wangyoude", name:"王有德", gender:"男", age:38, home:"杂役住所", color:"#5F5E5A",
+   persona:"程府管家，跟随程墨多年，把府里打点得井井有条。精明世故，嘴严可靠。与柳氏有私情。",
+   hidden:"贪财好色，胆大心细，总想在府里捞点油水。"},
+  {id:"npc", name:"NPC", gender:"不限", age:30, home:"程府大厅", color:"#1D9E75",
+   persona:"无名角色，可扮演府中仆役、门房、访客、路人等任何剧情中出现的人物，按剧情自行设定身份言行。",
+   hidden:""},
+];
+const PLAYER = {id:"player", name:"程晨", color:"#185FA5"};
+const STORE_KEY = "chengfu_story_v1";
+const SHICHEN = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+
+let state = null;
+let uid = 0;
+
+function defaultCharacters(){
+  return CHARACTERS.map(c => Object.assign({}, c, {location:c.home}));
+}
+function freshState(){
+  return {
+    started:false, selectedIds:[], characters:defaultCharacters(), messages:[],
+    playerLocation:"东厢房", time:{day:1, minutes:8*60+30},
+    adultMode:false, apiKey:"", model:"deepseek-chat", contextLimit:80,
+    replyTargetId:null, isThinking:false
+  };
+}
+function load(){
+  try{
+    const s = localStorage.getItem(STORE_KEY);
+    if(s){ const o = JSON.parse(s); state = Object.assign(freshState(), o); return; }
+  }catch(e){}
+  state = freshState();
+}
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function timeLabel(t){
+  const hh = String(Math.floor(t.minutes/60)).padStart(2,"0");
+  const mm = String(t.minutes%60).padStart(2,"0");
+  const shi = SHICHEN[Math.floor(((Math.floor(t.minutes/60)+1)%24)/2)] + "时";
+  return "第" + t.day + "天 · " + shi + " (" + hh + ":" + mm + ")";
+}
+function advanceTime(t, m){
+  let total = t.minutes + m, day = t.day;
+  while(total >= 24*60){ total -= 24*60; day += 1; }
+  return {day, minutes:total};
+}
+
+function selectedCharacters(){ return state.characters.filter(c => state.selectedIds.includes(c.id)); }
+function presentCharacters(){ return selectedCharacters().filter(c => c.location === state.playerLocation); }
+function charById(id){ return state.characters.find(c => c.id === id); }
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+// ---------- 提示词 ----------
+function buildSystemPrompt(target){
+  let s = "你是一部古风家宅题材文字剧情游戏的扮演引擎，玩家扮演主角程晨。请严格按以下设定扮演，绝不跳出角色、绝不提及自己是AI。\n\n";
+  s += "【背景】江南程府家主程墨突然病故，独子程晨（18岁）一夜之间继承家业。继母柳氏执掌府中大小事务并极度疼爱程晨；程晨有正妻怡儿、小妾玉儿、贴身婢女婉儿，另有庶弟程念与管家王有德。程晨不必操心琐事，府中自有人打理。\n\n";
+  s += "【地点】" + LOCATIONS.map(l=>l.name).join("、") + "。柳氏住主宅，程晨与怡儿、玉儿住东厢房，程念、婉儿、王有德住杂役住所。角色只有与程晨处于同一地点时才能当面交谈；若程晨召唤了谁，谁便会赶来。\n\n";
+  s += "【当前状态】\n时间：" + timeLabel(state.time) + "\n程晨位置：" + state.playerLocation + "\n";
+  const present = presentCharacters();
+  s += present.length ? ("此刻在程晨身边：" + present.map(c=>c.name).join("、") + "\n") : "此刻程晨身边没有其他角色。\n";
+  s += "\n【角色档案】（只存在以下被选中的角色，其余角色一律不存在、不会说话）\n";
+  selectedCharacters().forEach(c => {
+    s += "◆ " + c.name + "｜" + c.gender + "｜" + c.age + "岁｜居" + c.home + "｜当前在：" + c.location + "\n";
+    s += "  性格与经历：" + c.persona + "\n";
+    if(c.hidden) s += "  内在设定（藏在心里，不要直说）：" + c.hidden + "\n";
+  });
+  s += "\n【本次回应角色】" + target.name + "\n\n【扮演规则】\n";
+  s += "1. 只以「" + target.name + "」的身份回应程晨，可在（）中加入少量旁白。绝不代替程晨说话、行动或思考。\n";
+  s += "2. 描写格式：动作、神态、旁白放在（）中；心理描写放在（）内并用两个星号包裹，例如：（她垂眸绞着帕子，**心里又酸又软**）然后接对白。\n";
+  s += "3. 所有角色拥有永不过忘的记忆：牢记此前每一次对话的细节、时间与地点，前后呼应，绝不自相矛盾、绝不遗忘。\n";
+  s += "4. 角色始终清楚自己当前所在的地点与当前时间，言行符合身份、时间与场合。\n";
+  s += "5. 若程晨刚刚把你召唤过来，先自然描写你从住处赶来的情景。\n";
+  s += "6. 文风：古风白话，贴合人物身份，单次回复150~350字，结尾留有余韵、引导剧情继续。\n";
+  if(state.adultMode){
+    if(target.age >= 18){
+      s += "\n【成人模式·已开启】本作允许成年角色之间直白、露骨的情爱内容：可以完整细腻地描写情欲、身体与性行为的全过程与细节，不必回避、淡化或转移，但须贴合人物性格与两人关系，情感有铺垫、循序渐进，一切互动出自成年角色的自愿。\n";
+    }else{
+      s += "\n【限制】本角色未成年，绝不参与任何情色、性暗示或亲密内容，成人模式对其完全无效。\n";
+    }
+    s += "无论如何：未成年角色（程念，16岁）绝不出现任何情色、性暗示或亲密内容。\n";
+  }
+  return s;
+}
+function buildHistory(target, limit){
+  return state.messages.slice(-Math.max(limit,10)).map(m => {
+    if(m.isNarration) return {role:"user", content:"（旁白）" + m.text};
+    const role = m.speakerId === target.id ? "assistant" : "user";
+    const content = m.isPlayer ? ("程晨：" + m.text) : (m.speakerName + "：" + m.text);
+    return {role, content};
+  });
+}
+
+// ---------- DeepSeek ----------
+async function callDeepSeek(apiKey, model, messages){
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method:"POST",
+    headers:{"Content-Type":"application/json", "Authorization":"Bearer " + apiKey},
+    body: JSON.stringify({model, messages, temperature:1.2, stream:false})
+  });
+  if(!res.ok){
+    let body = "";
+    try{ body = await res.text(); }catch(e){}
+    throw new Error("请求失败(" + res.status + ")：" + body.slice(0,300));
+  }
+  const data = await res.json();
+  const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if(!content || !content.trim()) throw new Error("AI 没有返回内容，请重试");
+  return content.trim();
+}
+
+// ---------- 消息 ----------
+function pushMessage(m){
+  state.messages.push(Object.assign({id:++uid, time:Object.assign({}, state.time), location: state.playerLocation}, m));
+}
+function addNarration(text){
+  pushMessage({speakerId:"narrator", speakerName:"旁白", text, isPlayer:false, isNarration:true});
+}
+
+// ---------- 格式化 ----------
+function formatStory(raw){
+  const esc = String(raw).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const regex = /\*\*(.+?)\*\*|（([^（）]{0,300}?)）|\(([^()]{0,300}?)\)/g;
+  let out = "", last = 0, m;
+  while((m = regex.exec(esc)) !== null){
+    out += esc.slice(last, m.index);
+    if(m[1] !== undefined) out += "<b>" + m[1] + "</b>";
+    else out += "<span class='paren'>（" + (m[2] != null ? m[2] : m[3]) + "）</span>";
+    last = m.index + m[0].length;
+  }
+  out += esc.slice(last);
+  return out.replace(/\n/g,"<br>");
+}
+
+// ---------- 渲染 ----------
+function avatarHtml(name, color, size){
+  return "<div class='avatar' style='width:"+size+"px;height:"+size+"px;font-size:"+Math.round(size*0.45)+"px;background:"+color+"'>"+escapeHtml(name[0])+"</div>";
+}
+function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function renderChat(){
+  const el = document.getElementById("chat");
+  let html = "";
+  state.messages.forEach(m => {
+    if(m.isNarration){
+      html += "<div class='msg narr'>" + formatStory(m.text) + "</div>";
+    }else if(m.isPlayer){
+      html += "<div class='msg player'><div class='bubble'>" + formatStory(m.text) + "</div></div>";
+    }else{
+      const c = charById(m.speakerId);
+      const color = c ? c.color : "#888780";
+      html += "<div class='msg ai'>" + avatarHtml(m.speakerName, color, 36)
+        + "<div><div class='ai-head'><span class='nm'>" + escapeHtml(m.speakerName) + "</span>"
+        + "<span class='meta'>· " + escapeHtml(m.location || "") + " · " + escapeHtml(timeLabel(m.time)) + "</span></div>"
+        + "<div class='bubble'>" + formatStory(m.text) + "</div></div></div>";
+    }
+  });
+  if(state.isThinking){
+    html += "<div class='thinking'><div class='dots'><span></span><span></span><span></span></div>众人正在回应……</div>";
+  }
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+function renderChips(){
+  const el = document.getElementById("chips");
+  const present = presentCharacters();
+  let html = "<span class='chip-lbl'>回复</span>";
+  html += "<button class='chip " + (state.replyTargetId == null ? "on":"") + "' onclick='setTarget(null)'>全体在场</button>";
+  present.forEach(c => {
+    html += "<button class='chip " + (state.replyTargetId === c.id ? "on":"") + "' onclick='setTarget(\"" + c.id + "\")'>" + escapeHtml(c.name) + "</button>";
+  });
+  el.innerHTML = html;
+}
+function renderTop(){
+  document.getElementById("timeText").textContent = timeLabel(state.time);
+}
+function renderAll(){ renderTop(); renderChat(); renderChips(); }
+
+// ---------- 开始页 ----------
+function renderCharSelect(){
+  const el = document.getElementById("charSelect");
+  let html = "";
+  CHARACTERS.forEach(c => {
+    const on = state.selectedIds.includes(c.id);
+    html += "<div class='char-row " + (on?"on":"") + "' onclick='toggleChar(\"" + c.id + "\")'>"
+      + avatarHtml(c.name, c.color, 40)
+      + "<div style='flex:1'><div class='char-name'>" + escapeHtml(c.name)
+      + " <span style='font-weight:400;font-size:12px;color:var(--ink2)'>" + c.gender + " · " + c.age + "岁</span></div>"
+      + "<div class='char-meta'>居" + c.home + "</div>"
+      + "<div class='char-persona'>" + escapeHtml(c.persona) + "</div></div>"
+      + "<div class='check'>" + (on?"✓":"") + "</div></div>";
+  });
+  el.innerHTML = html;
+}
+function toggleChar(id){
+  const i = state.selectedIds.indexOf(id);
+  if(i >= 0) state.selectedIds.splice(i,1); else state.selectedIds.push(id);
+  renderCharSelect();
+  updateStartBtn();
+}
+function updateStartBtn(){
+  const btn = document.getElementById("startBtn");
+  const key = document.getElementById("apiKeyInput").value.trim();
+  let ok = state.selectedIds.length > 0 && key.length > 0;
+  btn.disabled = !ok;
+  btn.textContent = !state.selectedIds.length ? "请至少选择一名角色" : (!key ? "请先填写 API Key" : "进入程府");
+}
+function startGame(){
+  state.apiKey = document.getElementById("apiKeyInput").value.trim();
+  state.adultMode = document.getElementById("adultToggle").checked;
+  if(!state.selectedIds.length){ toast("请至少选择一名角色"); return; }
+  if(!state.apiKey){ toast("请先填写 API Key"); return; }
+  state.characters = defaultCharacters();
+  state.messages = [];
+  state.time = {day:1, minutes:8*60+30};
+  state.playerLocation = "东厢房";
+  state.replyTargetId = null;
+  state.started = true;
+  addNarration("（父亲程墨的丧事刚过，你成了程府新的家主。这日清晨，你从东厢房醒来。\n提示：点左上「地图」可移动位置、召唤人过来；点顶部时间可快进时光；被你选中的角色才会在府中出现。）");
+  save();
+  showScreen();
+}
+
+// ---------- 游戏逻辑 ----------
+function showScreen(){
+  document.getElementById("startScreen").hidden = state.started;
+  document.getElementById("gameScreen").hidden = !state.started;
+  if(state.started) renderAll();
+}
+function setTarget(id){ state.replyTargetId = id; renderChips(); }
+
+function moveTo(locId){
+  const loc = LOCATIONS.find(l=>l.id===locId);
+  if(!loc || loc.name === state.playerLocation) return;
+  state.playerLocation = loc.name;
+  state.replyTargetId = null;
+  addNarration("（你移步来到" + loc.name + "。）");
+  save(); renderAll(); renderMap(); closeModal();
+}
+function summon(id){
+  const c = charById(id);
+  if(!c || c.location === state.playerLocation) return;
+  const from = c.location;
+  c.location = state.playerLocation;
+  addNarration("（你着人去请。不多时，" + c.name + "从" + from + "赶到了" + state.playerLocation + "。）");
+  save(); renderAll(); renderMap();
+}
+function advanceTimeMin(m){
+  state.time = advanceTime(state.time, m);
+  addNarration("（时光流转，已是" + timeLabel(state.time) + "。）");
+  save(); renderAll();
+  document.getElementById("timeBig").textContent = timeLabel(state.time);
+}
+function clearChat(){ state.messages = []; save(); renderAll(); toast("对话记录已清空"); }
+function resetGame(){
+  if(!confirm("确定重置？所有角色位置、时间、对话都会清空。")) return;
+  localStorage.removeItem(STORE_KEY);
+  state = freshState();
+  renderCharSelect(); document.getElementById("apiKeyInput").value = state.apiKey;
+  showScreen(); closeModal();
+}
+
+async function send(text){
+  text = text.trim();
+  if(!text || state.isThinking) return;
+  if(!state.apiKey){ toast("请先在设置中填写 DeepSeek API Key"); return; }
+  pushMessage({speakerId:"player", speakerName:"程晨", text, isPlayer:true});
+  state.time = advanceTime(state.time, 10);
+  const present = presentCharacters();
+  if(!present.length){
+    addNarration("（此刻此处并无旁人，无人应答。打开地图看看大家都在哪里，或把人召唤过来。）");
+    save(); renderAll(); return;
+  }
+  let targets;
+  if(state.replyTargetId && present.find(c=>c.id===state.replyTargetId)){
+    targets = present.filter(c=>c.id===state.replyTargetId);
+  }else{
+    targets = present;
+  }
+  state.isThinking = true; renderAll(); save();
+  try{
+    for(const t of targets){
+      const messages = [{role:"system", content: buildSystemPrompt(t)}].concat(buildHistory(t, state.contextLimit));
+      const reply = await callDeepSeek(state.apiKey, state.model, messages);
+      pushMessage({speakerId:t.id, speakerName:t.name, text:reply, isPlayer:false});
+      save(); renderChat();
+    }
+  }catch(e){
+    toast(e.message || "调用失败");
+  }
+  state.isThinking = false; renderAll();
+}
+
+// ---------- 弹窗 ----------
+function openModal(id){ document.getElementById(id).hidden = false; }
+function closeModal(){ document.querySelectorAll(".modal").forEach(m=>m.hidden=true); }
+function renderMap(){
+  const el = document.getElementById("mapBody");
+  let html = "<div class='section-title'>地点 · 点击即可移动</div>";
+  LOCATIONS.forEach(loc => {
+    const here = state.playerLocation === loc.name;
+    const people = selectedCharacters().filter(c=>c.location===loc.name);
+    html += "<div class='loc-row' onclick='moveTo(\"" + loc.id + "\")'>"
+      + "<span class='ic'>" + loc.icon + "</span>"
+      + "<div style='flex:1'><div class='loc-name'>" + loc.name + (here ? " <span class='here-tag'>你在这里</span>":"") + "</div>"
+      + "<div class='loc-desc'>" + loc.desc + "</div>"
+      + (people.length ? "<div class='loc-people'>在场：" + people.map(c=>c.name).join("、") + "</div>" : "")
+      + "</div></div>";
+  });
+  const elsewhere = selectedCharacters().filter(c => c.location !== state.playerLocation);
+  html += "<div class='section-title'>召唤到身边</div>";
+  if(!elsewhere.length){
+    html += "<div class='centermini'>被选中的角色都已在你身边。</div>";
+  }else{
+    elsewhere.forEach(c => {
+      html += "<div class='summon-row'>" + avatarHtml(c.name, c.color, 30)
+        + "<div><div class='char-name'>" + escapeHtml(c.name) + "</div><div class='char-meta'>现在：" + escapeHtml(c.location) + "</div></div>"
+        + "<button class='btn' onclick='summon(\"" + c.id + "\")'>召唤</button></div>";
+    });
+  }
+  el.innerHTML = html;
+}
+function renderSettings(){
+  document.getElementById("settingsKey").value = state.apiKey;
+  document.getElementById("settingsModel").value = state.model;
+  document.getElementById("settingsMem").value = state.contextLimit;
+  document.getElementById("memLabel").textContent = state.contextLimit;
+  document.getElementById("settingsAdult").checked = state.adultMode;
+}
+
+// ---------- 事件绑定 ----------
+document.addEventListener("DOMContentLoaded", function(){
+  load();
+  renderCharSelect();
+  document.getElementById("apiKeyInput").value = state.apiKey;
+  document.getElementById("adultToggle").checked = state.adultMode;
+  updateStartBtn();
+
+  document.getElementById("apiKeyInput").addEventListener("input", function(){ state.apiKey = this.value; updateStartBtn(); });
+  document.getElementById("charSelect").addEventListener("click", function(e){});
+  document.getElementById("startBtn").addEventListener("click", startGame);
+
+  document.getElementById("mapBtn").addEventListener("click", function(){ renderMap(); openModal("mapModal"); });
+  document.getElementById("timeBtn").addEventListener("click", function(){ document.getElementById("timeBig").textContent = timeLabel(state.time); document.getElementById("customMin").value = 60; document.getElementById("customMinLabel").textContent = 60; openModal("timeModal"); });
+  document.getElementById("settingsBtn").addEventListener("click", function(){ renderSettings(); openModal("settingsModal"); });
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeModal));
+  document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click", function(e){ if(e.target===m) closeModal(); }));
+
+  document.getElementById("sendBtn").addEventListener("click", function(){
+    const inp = document.getElementById("input");
+    const text = inp.value; inp.value = "";
+    autoGrow(inp);
+    send(text);
+  });
+  const inp = document.getElementById("input");
+  inp.addEventListener("input", function(){ autoGrow(this); });
+  inp.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); const t = inp.value; inp.value=""; autoGrow(inp); send(t); }
+  });
+
+  document.getElementById("customMin").addEventListener("input", function(){ document.getElementById("customMinLabel").textContent = this.value; });
+  document.getElementById("settingsKey").addEventListener("input", function(){ state.apiKey = this.value; save(); });
+  document.getElementById("settingsModel").addEventListener("change", function(){ state.model = this.value; save(); });
+  document.getElementById("settingsMem").addEventListener("input", function(){ state.contextLimit = parseInt(this.value); document.getElementById("memLabel").textContent = this.value; save(); });
+  document.getElementById("settingsAdult").addEventListener("change", function(){ state.adultMode = this.checked; save(); });
+
+  showScreen();
+});
+
+function autoGrow(el){
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+</script>
+</body>
+</html>
