@@ -530,7 +530,7 @@ function startGame(){
   const slot = { id:"s"+Date.now(), name:"存档"+(saves.length+1), updatedAt:Date.now(), data:JSON.parse(JSON.stringify(state)) };
   saves.push(slot);
   activeSaveId = slot.id;
-  persistSaves();
+  save();
   showScreen();
 }
 
@@ -617,6 +617,7 @@ function backToMenu(){
   document.getElementById("apiKeyInput").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
   document.getElementById("adultToggle").checked = state.adultMode;
+  updateStartBtn();
   renderSaveList();
   showScreen();
   closeModal();
@@ -652,11 +653,15 @@ function advanceTimeMin(m){
 }
 function clearChat(){ state.messages = []; save(); renderAll(); toast("对话记录已清空"); }
 function resetGame(){
-  if(!confirm("确定重置？所有存档都会被删除。")) return;
+  if(!confirm("确定重置？所有存档都会被删除（API Key 等设置会保留）。")) return;
   saves = []; activeSaveId = null; persistSaves();
-  state = freshState();
+  const keep = {apiKey:state.apiKey, model:state.model, adultMode:state.adultMode, contextLimit:state.contextLimit};
+  state = Object.assign(freshState(), keep);
   renderCharSelect();
   document.getElementById("apiKeyInput").value = state.apiKey;
+  document.getElementById("modelSelect").value = state.model;
+  document.getElementById("adultToggle").checked = state.adultMode;
+  updateStartBtn();
   renderSaveList();
   showScreen(); closeModal();
 }
@@ -754,7 +759,6 @@ document.addEventListener("DOMContentLoaded", function(){
     save();
     toast("✅ 配置已保存");
   });
-  document.getElementById("charSelect").addEventListener("click", function(e){});
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("importBtn").addEventListener("click", function(){ document.getElementById("importFile").click(); });
   document.getElementById("importFile").addEventListener("change", function(){
